@@ -25,11 +25,6 @@ RUN /app/gitea/gitea migrate \
     && /app/gitea/gitea admin user create \
       --username testadmin \
       --password asdf1234 \
-      --email test@foo.com \
-      --admin \
-    && /app/gitea/gitea admin user create \
-      --username test \
-      --password asdf1234 \
-      --email test@foo.com \
+      --email testadmin@foo.com \
       --admin
 USER root

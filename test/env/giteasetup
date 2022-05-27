@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [ ! -d /localdata/git/.ssh ]; then
+    mkdir -p /localdata/git/.ssh
+    chmod 700 /localdata/git/.ssh
+fi
+
+if [ ! -f /localdata/git/.ssh/environment ]; then
+    echo "GITEA_CUSTOM=$GITEA_CUSTOM" >| /localdata/git/.ssh/environment
+    chmod 600 /localdata/git/.ssh/environment
+
+elif ! grep -q "^GITEA_CUSTOM=$GITEA_CUSTOM$" /localdata/git/.ssh/environment; then
+    sed -i /^GITEA_CUSTOM=/d /localdata/git/.ssh/environment
+    echo "GITEA_CUSTOM=$GITEA_CUSTOM" >> /localdata/git/.ssh/environment
+fi
+
+# only chown if current owner is not already the gitea ${USER}. No recursive check to save time
+if ! [[ $(ls -ld /localdata/gitea | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /localdata/gitea; fi
+if ! [[ $(ls -ld /app/gitea  | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /app/gitea;  fi
+if ! [[ $(ls -ld /localdata/git   | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /localdata/git;   fi
+chmod 0755 /localdata/gitea /app/gitea /localdata/git

@@ -85,3 +85,26 @@ func TestGetReleases(t *testing.T) {
 		})
 	}
 }
+
+func TestGetReleasesWithPagination(t *testing.T) {
+	// This test is intentionally not run in parallel due to the page size adjustment which slows down the other tests.
+	defer func() {
+		defaultPageSize = 100
+	}()
+	defaultPageSize = 1
+
+	clt, err := gitea.NewClient(testServerURL, gitea.SetBasicAuth(testUsername, testPassword))
+	require.NoError(t, err)
+
+	opts, err := NewListReleaseOpts(testUsername, publicRepo, "", true)
+	require.NoError(t, err)
+	releases, err := GetReleases(clt, *opts)
+	require.NoError(t, err)
+
+	tags := []string{}
+	for _, rel := range releases {
+		tags = append(tags, rel.TagName)
+	}
+	sort.Strings(tags)
+	assert.Equal(t, []string{"v0.0.0", "v0.0.0-alpha.1", "v0.0.1", "v0.0.1-alpha.1"}, tags)
+}

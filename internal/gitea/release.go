@@ -1,7 +1,15 @@
 package gitea
 
 import (
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-version"
 )
 
@@ -33,6 +41,23 @@ func NewListReleaseOpts(owner, repo, semverConstraintStr string, includePreRelea
 	}
 
 	return out, nil
+}
+
+// GetReleaseByID returns the corresponding release for the given ID string.
+func GetReleaseByID(clt *gitea.Client, owner, repo, releaseIDStr string) (*gitea.Release, error) {
+	releaseID, err := strconv.ParseInt(releaseIDStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	rel, _, err := clt.GetRelease(owner, repo, releaseID)
+	return rel, err
+}
+
+// GetReleaseByTag returns the corresponding release for the given tag name.
+func GetReleaseByTag(clt *gitea.Client, owner, repo, tagName string) (*gitea.Release, error) {
+	rel, _, err := clt.GetReleaseByTag(owner, repo, tagName)
+	return rel, err
 }
 
 // GetReleases returns all the releases that match the provided filter options. This will handle pagination, going
@@ -103,4 +128,64 @@ func hasNextPage(resp *gitea.Response) bool {
 	}
 
 	return linksOutput.nextPage != nil
+}
+
+// DownloadReleaseAssets downloads the associated assets from the given release to the provided destination directory.
+// The release assets to download can be filtered using glob syntax.
+func DownloadReleaseAssets(clt *gitea.Client, release *gitea.Release, destDir string, globs []string) error {
+	var allErr error
+	for _, attachment := range release.Attachments {
+		var matchFound bool
+		if len(globs) == 0 {
+			matchFound = true
+		} else {
+			for _, glob := range globs {
+				matches, err := filepath.Match(glob, attachment.Name)
+				if err != nil {
+					allErr = multierror.Append(allErr, err)
+					continue
+				}
+
+				if matches {
+					matchFound = true
+					break
+				}
+			}
+		}
+
+		if !matchFound {
+			continue
+		}
+
+		attachmentPath := filepath.Join(destDir, attachment.Name)
+		if err := downloadFile(attachment.DownloadURL, attachmentPath); err != nil {
+			allErr = multierror.Append(allErr, err)
+		}
+	}
+	return allErr
+}
+
+func downloadFile(url, destPath string) error {
+	out, err := os.Create(destPath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to download file `%s`: HTTP status %d", filepath.Base(destPath), resp.StatusCode)
+	}
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

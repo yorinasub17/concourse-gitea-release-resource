@@ -113,7 +113,7 @@ func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, re
 		}
 
 		// Sleep before cutting release to ensure repo is in sync on server
-		time.Sleep(5)
+		time.Sleep(5 * time.Second)
 		mustCutRelease(clt, repo.Owner.UserName, repo.Name, releaseName, sha, isPreRelease)
 	}
 }

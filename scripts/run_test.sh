@@ -14,6 +14,7 @@ sleep 10
 go run "$TEST_DIR"/setup
 
 go test -v -count 1 ./...
+TEST_EXIT_CODE="$?"
 
 >&2 echo 'Stopping test gitea container'
 docker stop "$CONTAINER_ID"
@@ -22,3 +23,5 @@ echo "Sleeping for 10 seconds to give container $CONTAINER_ID a moment to stop"
 
 >&2 echo 'Removing test gitea container image'
 docker rmi "$IMAGE_ID"
+
+exit "$TEST_EXIT_CODE"

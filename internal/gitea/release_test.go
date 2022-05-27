@@ -14,9 +14,9 @@ const (
 	testUsername  = "testadmin"
 	testPassword  = "asdf1234"
 
-	privateRepo                    = "fooprivate"
-	publicRepo                     = "foo"
-	publicRepoWithPrereleaseLatest = "foo-pre-latest"
+	publicRepo = "foo"
+	//publicRepoWithPrereleaseLatest = "foo-pre-latest"
+	//privateRepo                    = "fooprivate"
 )
 
 func TestGetReleases(t *testing.T) {

@@ -8,6 +8,6 @@ import (
 )
 
 func main() {
-	fmt.Fprintf(os.Stderr, colorstring.Color("[red]not implemented"))
+	fmt.Fprint(os.Stderr, colorstring.Color("[red]not implemented\n"))
 	os.Exit(1)
 }

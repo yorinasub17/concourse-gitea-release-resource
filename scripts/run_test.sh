@@ -13,6 +13,8 @@ sleep 10
 >&2 echo 'Loading test repo and releases to test gitea container'
 go run "$TEST_DIR"/setup
 
+go test -v -count 1 ./...
+
 >&2 echo 'Stopping test gitea container'
 docker stop "$CONTAINER_ID"
 sleep 10

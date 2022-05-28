@@ -8,35 +8,52 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/gruntwork-io/go-commons/git"
 	"github.com/gruntwork-io/go-commons/random"
 	"github.com/gruntwork-io/go-commons/shell"
-)
 
-const (
-	testServerURL = "http://localhost:3000"
-	testEmail     = "testadmin@foo.com"
-	testUsername  = "testadmin"
-	testPassword  = "asdf1234"
+	"github.com/yorinasub17/concourse-gitea-release-resource/test"
 )
 
 func main() {
 	clt := mustBasicAuthClient()
 
-	privateRepo := mustCreateRepo(clt, "fooprivate", true)
-	mustSetupRepoWithTestReleases(clt, privateRepo, 4)
-	publicRepo := mustCreateRepo(clt, "foo", false)
-	mustSetupRepoWithTestReleases(clt, publicRepo, 4)
-	publicRepoWithPrereleaseLatest := mustCreateRepo(clt, "foo-pre-latest", false)
-	mustSetupRepoWithTestReleases(clt, publicRepoWithPrereleaseLatest, 5)
-	fmt.Fprintf(os.Stderr, "INFO: successfully created repos foo, foo-pre-latest, and fooprivate with test releases\n")
+	wg := new(sync.WaitGroup)
+	wg.Add(4)
+
+	go func() {
+		defer wg.Done()
+		privateRepo := mustCreateRepo(clt, "fooprivate", true)
+		mustSetupRepoWithTestReleases(clt, privateRepo, 4)
+	}()
+
+	go func() {
+		defer wg.Done()
+		publicRepo := mustCreateRepo(clt, "foo", false)
+		mustSetupRepoWithTestReleases(clt, publicRepo, 4)
+	}()
+
+	go func() {
+		defer wg.Done()
+		publicRepoWithPrereleaseLatest := mustCreateRepo(clt, "foo-pre-latest", false)
+		mustSetupRepoWithTestReleases(clt, publicRepoWithPrereleaseLatest, 5)
+	}()
+
+	go func() {
+		defer wg.Done()
+		mustCreateRepo(clt, "noreleases", false)
+	}()
+
+	wg.Wait()
+	fmt.Fprintf(os.Stderr, "INFO: successfully created repos noreleases, foo, foo-pre-latest, and fooprivate with test releases\n")
 }
 
 func mustBasicAuthClient() *gitea.Client {
-	clt, err := gitea.NewClient(testServerURL, gitea.SetBasicAuth(testUsername, testPassword))
+	clt, err := gitea.NewClient(test.ServerURL, gitea.SetBasicAuth(test.Username, test.Password))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: could not initialize client to local test server: %s\n", err)
 		os.Exit(1)
@@ -60,7 +77,7 @@ func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, re
 		fmt.Fprintf(os.Stderr, "ERROR: could not parse repo clone URL %s: %s\n", cloneURL, err)
 		os.Exit(1)
 	}
-	parsed.User = url.UserPassword(testUsername, testPassword)
+	parsed.User = url.UserPassword(test.Username, test.Password)
 	cloneURLAuthed := parsed.String()
 
 	tmpDir, err := ioutil.TempDir("", "gitea-test*")
@@ -122,10 +139,10 @@ func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, re
 func setupTestGitConfig(repoRoot string) error {
 	opts := shell.NewShellOptions()
 	opts.WorkingDir = repoRoot
-	if err := shell.RunShellCommand(opts, "git", "config", "user.name", testUsername); err != nil {
+	if err := shell.RunShellCommand(opts, "git", "config", "user.name", test.Username); err != nil {
 		return err
 	}
-	if err := shell.RunShellCommand(opts, "git", "config", "user.email", testEmail); err != nil {
+	if err := shell.RunShellCommand(opts, "git", "config", "user.email", test.Email); err != nil {
 		return err
 	}
 	return nil

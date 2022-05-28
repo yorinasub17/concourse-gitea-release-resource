@@ -51,11 +51,22 @@ func TestGetReleases(t *testing.T) {
 			"SemverConstraint",
 			test.PublicRepo,
 			">= 0.0.0, < 0.0.1",
-			true,
+			false,
 			[]string{
 				"v0.0.0",
 			},
 		},
+		{
+			"SemverConstraintWithPrerelease",
+			test.PublicRepo,
+			">= 0.0.0, < 0.0.1",
+			true,
+			[]string{
+				"v0.0.0",
+				"v0.0.0-alpha.1",
+			},
+		},
+
 		{
 			"PrivateNoPrereleaseIgnoresPrereleases",
 			test.PrivateRepo,
@@ -82,9 +93,19 @@ func TestGetReleases(t *testing.T) {
 			"PrivateSemverConstraint",
 			test.PrivateRepo,
 			">= 0.0.0, < 0.0.1",
+			false,
+			[]string{
+				"v0.0.0",
+			},
+		},
+		{
+			"PrivateSemverConstraintWithPrerelease",
+			test.PrivateRepo,
+			">= 0.0.0, < 0.0.1",
 			true,
 			[]string{
 				"v0.0.0",
+				"v0.0.0-alpha.1",
 			},
 		},
 	}

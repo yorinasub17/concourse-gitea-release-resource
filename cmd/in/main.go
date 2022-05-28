@@ -66,13 +66,25 @@ func main() {
 	}
 	writeOutput(destDir, "timestamp", string(ts))
 
-	if err := gitea.DownloadReleaseAssets(clt, maybeRel, destDir, request.Params.Globs); err != nil {
-		fmt.Fprintf(
-			os.Stderr,
-			colorstring.Color("[red]error downloading release assets to dest dir %s: %s\n"),
-			destDir, err,
-		)
-		os.Exit(1)
+	if len(maybeRel.Attachments) > 0 {
+		assetsDir := filepath.Join(destDir, "assets")
+		if err := os.Mkdir(assetsDir, 0755); err != nil {
+			fmt.Fprintf(
+				os.Stderr,
+				colorstring.Color("[red]error creating release assets dir %s: %s\n"),
+				assetsDir, err,
+			)
+			os.Exit(1)
+		}
+
+		if err := gitea.DownloadReleaseAssets(clt, maybeRel, assetsDir, request.Params.Globs); err != nil {
+			fmt.Fprintf(
+				os.Stderr,
+				colorstring.Color("[red]error downloading release assets to dest dir %s: %s\n"),
+				destDir, err,
+			)
+			os.Exit(1)
+		}
 	}
 
 	resp := resource.InResponse{

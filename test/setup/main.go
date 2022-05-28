@@ -8,35 +8,52 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/gruntwork-io/go-commons/git"
 	"github.com/gruntwork-io/go-commons/random"
 	"github.com/gruntwork-io/go-commons/shell"
-)
 
-const (
-	testServerURL = "http://localhost:3000"
-	testEmail     = "testadmin@foo.com"
-	testUsername  = "testadmin"
-	testPassword  = "asdf1234"
+	"github.com/yorinasub17/concourse-gitea-release-resource/test"
 )
 
 func main() {
 	clt := mustBasicAuthClient()
 
-	privateRepo := mustCreateRepo(clt, "fooprivate", true)
-	mustSetupRepoWithTestReleases(clt, privateRepo, 4)
-	publicRepo := mustCreateRepo(clt, "foo", false)
-	mustSetupRepoWithTestReleases(clt, publicRepo, 4)
-	publicRepoWithPrereleaseLatest := mustCreateRepo(clt, "foo-pre-latest", false)
-	mustSetupRepoWithTestReleases(clt, publicRepoWithPrereleaseLatest, 5)
-	fmt.Fprintf(os.Stderr, "INFO: successfully created repos foo, foo-pre-latest, and fooprivate with test releases\n")
+	wg := new(sync.WaitGroup)
+	wg.Add(4)
+
+	go func() {
+		defer wg.Done()
+		privateRepo := mustCreateRepo(clt, "fooprivate", true)
+		mustSetupRepoWithTestReleases(clt, privateRepo, 4, false)
+	}()
+
+	go func() {
+		defer wg.Done()
+		publicRepo := mustCreateRepo(clt, "foo", false)
+		mustSetupRepoWithTestReleases(clt, publicRepo, 4, true)
+	}()
+
+	go func() {
+		defer wg.Done()
+		publicRepoWithPrereleaseLatest := mustCreateRepo(clt, "foo-pre-latest", false)
+		mustSetupRepoWithTestReleases(clt, publicRepoWithPrereleaseLatest, 5, false)
+	}()
+
+	go func() {
+		defer wg.Done()
+		mustCreateRepo(clt, "noreleases", false)
+	}()
+
+	wg.Wait()
+	fmt.Fprintf(os.Stderr, "INFO: successfully created repos noreleases, foo, foo-pre-latest, and fooprivate with test releases\n")
 }
 
 func mustBasicAuthClient() *gitea.Client {
-	clt, err := gitea.NewClient(testServerURL, gitea.SetBasicAuth(testUsername, testPassword))
+	clt, err := gitea.NewClient(test.ServerURL, gitea.SetBasicAuth(test.Username, test.Password))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: could not initialize client to local test server: %s\n", err)
 		os.Exit(1)
@@ -53,14 +70,14 @@ func mustCreateRepo(clt *gitea.Client, repoName string, private bool) *gitea.Rep
 	return repo
 }
 
-func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, releaseCount int) {
+func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, releaseCount int, includeAssets bool) {
 	cloneURL := repo.CloneURL
 	parsed, err := url.Parse(cloneURL)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: could not parse repo clone URL %s: %s\n", cloneURL, err)
 		os.Exit(1)
 	}
-	parsed.User = url.UserPassword(testUsername, testPassword)
+	parsed.User = url.UserPassword(test.Username, test.Password)
 	cloneURLAuthed := parsed.String()
 
 	tmpDir, err := ioutil.TempDir("", "gitea-test*")
@@ -114,7 +131,7 @@ func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, re
 
 		// Sleep before cutting release to ensure repo is in sync on server
 		time.Sleep(1 * time.Second)
-		mustCutRelease(clt, repo.Owner.UserName, repo.Name, releaseName, sha, isPreRelease)
+		mustCutRelease(clt, repo.Owner.UserName, repo.Name, releaseName, sha, isPreRelease, includeAssets)
 	}
 }
 
@@ -122,10 +139,10 @@ func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, re
 func setupTestGitConfig(repoRoot string) error {
 	opts := shell.NewShellOptions()
 	opts.WorkingDir = repoRoot
-	if err := shell.RunShellCommand(opts, "git", "config", "user.name", testUsername); err != nil {
+	if err := shell.RunShellCommand(opts, "git", "config", "user.name", test.Username); err != nil {
 		return err
 	}
-	if err := shell.RunShellCommand(opts, "git", "config", "user.email", testEmail); err != nil {
+	if err := shell.RunShellCommand(opts, "git", "config", "user.email", test.Email); err != nil {
 		return err
 	}
 	return nil
@@ -155,16 +172,51 @@ func getCurrentCommitSHA(repoRoot string) (string, error) {
 	return strings.TrimSpace(out), err
 }
 
-func mustCutRelease(clt *gitea.Client, repoOwner, repoName, releaseTag, commitSHA string, prerelease bool) *gitea.Release {
+func mustCutRelease(clt *gitea.Client, repoOwner, repoName, releaseTag, commitSHA string, prerelease, includeAssets bool) *gitea.Release {
 	release, resp, err := clt.CreateRelease(repoOwner, repoName, gitea.CreateReleaseOption{
 		TagName:      releaseTag,
 		Target:       commitSHA,
 		Title:        releaseTag,
+		Note:         "release " + releaseTag,
 		IsPrerelease: prerelease,
 	})
 	if err != nil && (resp == nil || resp.Response.StatusCode > 400) {
 		fmt.Fprintf(os.Stderr, "ERROR: could not create release %s on local test server: %s\n", releaseTag, err)
 		os.Exit(1)
+	}
+	if includeAssets {
+		// If requested, add three assets:
+		// - a file called 'tag' which includes the release tag and two random strings for id purposes.
+		// - two assets called asset1 and asset2, each containing a random string.
+		asset1Str, err := random.RandomString(6, random.Base62Chars)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: could not create random string for release assets: %s\n", err)
+			os.Exit(1)
+		}
+		asset2Str, err := random.RandomString(6, random.Base62Chars)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: could not create random string for release assets: %s\n", err)
+			os.Exit(1)
+		}
+
+		tagStr := strings.Join([]string{releaseTag, asset1Str, asset2Str}, "\n")
+		_, _, tagErr := clt.CreateReleaseAttachment(repoOwner, repoName, release.ID, strings.NewReader(tagStr), "tag")
+		if tagErr != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: could not upload asset 'tag' to release %s on local test server: %s\n", releaseTag, tagErr)
+			os.Exit(1)
+		}
+
+		_, _, asset1Err := clt.CreateReleaseAttachment(repoOwner, repoName, release.ID, strings.NewReader(asset1Str), "asset1")
+		if asset1Err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: could not upload asset 'asset1' to release %s on local test server: %s\n", releaseTag, asset1Err)
+			os.Exit(1)
+		}
+
+		_, _, asset2Err := clt.CreateReleaseAttachment(repoOwner, repoName, release.ID, strings.NewReader(asset2Str), "asset2")
+		if asset2Err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: could not upload asset 'asset2' to release %s on local test server: %s\n", releaseTag, asset2Err)
+			os.Exit(1)
+		}
 	}
 	return release
 }

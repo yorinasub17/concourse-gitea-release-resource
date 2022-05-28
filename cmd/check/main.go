@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/colorstring"
 	"github.com/yorinasub17/concourse-gitea-release-resource/internal/gitea"
 	"github.com/yorinasub17/concourse-gitea-release-resource/internal/resource"
@@ -19,8 +20,17 @@ func main() {
 	emptyVersion := resource.Version{}
 	if request.Version != emptyVersion {
 		// If request has a version, constrain to only include those after the current version.
-		greaterThan := "> " + request.Version.Tag
-		semverConstraint = strings.Join([]string{semverConstraint, greaterThan}, ", ")
+		v, err := version.NewVersion(request.Version.Tag)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, colorstring.Color("[red]error parsing version from existing release tag: %s\n"), err)
+			os.Exit(1)
+		}
+		greaterThan := "> " + v.String()
+		if semverConstraint == "" {
+			semverConstraint = greaterThan
+		} else {
+			semverConstraint = strings.Join([]string{semverConstraint, greaterThan}, ", ")
+		}
 	}
 
 	clt, err := gitea.NewGiteaClient(request.Source.GiteaURL, request.Source.AccessToken)

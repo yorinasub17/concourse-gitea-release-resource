@@ -107,7 +107,9 @@ func getReleasesPageWithFilter(clt *gitea.Client, opts ListReleaseOpts, page int
 				// ignore releases that don't have parsable semver tags
 				continue
 			}
-			if opts.SemverConstraint.Check(v) {
+			// Check against the core version so that versions with modifiers (like '-alpha.1') are also included in the
+			// check.
+			if opts.SemverConstraint.Check(v.Core()) {
 				releasesOut = append(releasesOut, release)
 			}
 		}

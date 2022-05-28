@@ -16,6 +16,7 @@ const (
 
 var (
 	accessToken string
+	giteaClt    *gitea.Client
 )
 
 func TestIntegration(t *testing.T) {
@@ -34,8 +35,9 @@ var _ = BeforeSuite(func() {
 
 	clt, err := gitea.NewClient(ServerURL, gitea.SetBasicAuth(Username, Password))
 	Ω(err).ShouldNot(HaveOccurred())
+	giteaClt = clt
 
-	token, _, err := clt.CreateAccessToken(gitea.CreateAccessTokenOption{Name: "IntegrationTestToken"})
+	token, _, err := giteaClt.CreateAccessToken(gitea.CreateAccessTokenOption{Name: "IntegrationTestToken"})
 	Ω(err).ShouldNot(HaveOccurred())
 	accessToken = token.Token
 })
@@ -43,4 +45,7 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	t := GinkgoT()
 	Ω(docker.DeleteImageE(t, imgTag, nil)).To(Succeed())
+
+	_, err := giteaClt.DeleteAccessToken("IntegrationTestToken")
+	Ω(err).ShouldNot(HaveOccurred())
 })

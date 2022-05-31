@@ -16,9 +16,9 @@ A Concourse CI resource for monitoring and pushing artifacts to gitea releases.
 ``` yaml
 resource_types:
   - name: gitea-release
-    type: gitea-release
+    type: docker-image
     source:
-      repository: yorinasub17/gitea-release-resource:latest
+      repository: yorinasub17/gitea-release-resource
 
 resources:
 - name: myrepo-release

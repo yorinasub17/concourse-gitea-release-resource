@@ -1,9 +1,6 @@
 package gitea
 
 import (
-	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,6 +8,8 @@ import (
 	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-version"
+
+	"github.com/yorinasub17/concourse-gitea-release-resource/internal/http"
 )
 
 var defaultPageSize = 100
@@ -178,36 +177,11 @@ func DownloadReleaseAssets(clt *gitea.Client, release *gitea.Release, destDir st
 		}
 
 		attachmentPath := filepath.Join(destDir, attachment.Name)
-		if err := downloadFile(attachment.DownloadURL, attachmentPath); err != nil {
+		if err := http.DownloadFileOverHTTP(attachment.DownloadURL, attachmentPath); err != nil {
 			allErr = multierror.Append(allErr, err)
 		}
 	}
 	return allErr
-}
-
-func downloadFile(url, destPath string) error {
-	out, err := os.Create(destPath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download file `%s`: HTTP status %d", filepath.Base(destPath), resp.StatusCode)
-	}
-
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // CreateRelease will create a new release with the given parameters.

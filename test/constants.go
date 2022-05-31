@@ -10,4 +10,5 @@ const (
 	PublicRepoWithPrereleaseLatest = "foo-pre-latest"
 	PrivateRepo                    = "fooprivate"
 	NoReleasesRepo                 = "noreleases"
+	EmptyRepo                      = "empty"
 )

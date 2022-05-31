@@ -23,33 +23,40 @@ func main() {
 	clt := mustBasicAuthClient()
 
 	wg := new(sync.WaitGroup)
-	wg.Add(4)
+	wg.Add(5)
 
 	go func() {
 		defer wg.Done()
-		privateRepo := mustCreateRepo(clt, "fooprivate", true)
+		privateRepo := mustCreateRepo(clt, test.PrivateRepo, true)
 		mustSetupRepoWithTestReleases(clt, privateRepo, 4, false)
 	}()
 
 	go func() {
 		defer wg.Done()
-		publicRepo := mustCreateRepo(clt, "foo", false)
+		publicRepo := mustCreateRepo(clt, test.PublicRepo, false)
 		mustSetupRepoWithTestReleases(clt, publicRepo, 4, true)
 	}()
 
 	go func() {
 		defer wg.Done()
-		publicRepoWithPrereleaseLatest := mustCreateRepo(clt, "foo-pre-latest", false)
+		publicRepoWithPrereleaseLatest := mustCreateRepo(clt, test.PublicRepoWithPrereleaseLatest, false)
 		mustSetupRepoWithTestReleases(clt, publicRepoWithPrereleaseLatest, 5, false)
 	}()
 
 	go func() {
 		defer wg.Done()
-		mustCreateRepo(clt, "noreleases", false)
+		noreleasesRepo := mustCreateRepo(clt, test.NoReleasesRepo, false)
+		mustSetupRepoWithTestReleases(clt, noreleasesRepo, 0, false)
+	}()
+
+	go func() {
+		defer wg.Done()
+		emptyRepo := mustCreateRepo(clt, test.EmptyRepo, false)
+		mustSetupRepoWithTestReleases(clt, emptyRepo, 0, false)
 	}()
 
 	wg.Wait()
-	fmt.Fprintf(os.Stderr, "INFO: successfully created repos noreleases, foo, foo-pre-latest, and fooprivate with test releases\n")
+	fmt.Fprintf(os.Stderr, "INFO: successfully created repos noreleases, empty, foo, foo-pre-latest, and fooprivate with test releases\n")
 }
 
 func mustBasicAuthClient() *gitea.Client {
@@ -94,6 +101,18 @@ func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, re
 
 	if err := setupTestGitConfig(tmpDir); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: could not configure git: %s\n", err)
+		os.Exit(1)
+	}
+
+	// Add an initial commit
+	readmePath := filepath.Join(tmpDir, "README.md")
+	if err := ioutil.WriteFile(readmePath, []byte("# Test repo"), 0o644); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: could not write readme to file %s: %s\n", readmePath, err)
+		os.Exit(1)
+	}
+
+	if err := commitAndPushFile(tmpDir, readmePath, "initial commit"); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: could not commit and push random file %s: %s\n", readmePath, err)
 		os.Exit(1)
 	}
 

@@ -78,7 +78,6 @@ var _ = Describe("Integration In", func() {
 		cmd.Stdin = bytes.NewReader(jsonBytes)
 		cmd.Stdout = &stdout
 		cmd.Stderr = os.Stderr
-		Ω(err).ShouldNot(HaveOccurred())
 		Ω(cmd.Run()).To(Succeed())
 
 		// chown the files to the current UID and GID so that it can be removed later. We use a docker container so that

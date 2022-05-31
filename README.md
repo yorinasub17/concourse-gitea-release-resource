@@ -18,7 +18,7 @@ resource_types:
   - name: gitea-release
     type: gitea-release
     source:
-      repository: yorinasub17/concourse-gitea-release-resource:latest
+      repository: yorinasub17/gitea-release-resource:latest
 
 resources:
 - name: myrepo-release

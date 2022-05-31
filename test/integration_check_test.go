@@ -26,12 +26,12 @@ var _ = Describe("Integration Check", func() {
 	JustBeforeEach(func() {
 		checkRequest := resource.CheckRequest{
 			Source: resource.Source{
-				GiteaURL:          ServerURL,
-				Owner:             Username,
-				Repository:        inputRepo,
-				AccessToken:       accessToken,
-				IncludePreRelease: includePreRelease,
-				SemverConstraint:  semverConstraint,
+				GiteaURL:         ServerURL,
+				Owner:            Username,
+				Repository:       inputRepo,
+				AccessToken:      accessToken,
+				PreRelease:       includePreRelease,
+				SemverConstraint: semverConstraint,
 			},
 			Version: resource.Version{
 				Tag: priorVersionTag,

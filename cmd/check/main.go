@@ -1,20 +1,20 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/colorstring"
+	"github.com/yorinasub17/concourse-gitea-release-resource/cmd"
 	"github.com/yorinasub17/concourse-gitea-release-resource/internal/gitea"
 	"github.com/yorinasub17/concourse-gitea-release-resource/internal/resource"
 )
 
 func main() {
 	request := resource.CheckRequest{}
-	inputRequest(&request)
+	cmd.InputRequest(&request)
 
 	semverConstraint := request.Source.SemverConstraint
 	emptyVersion := resource.Version{}
@@ -43,7 +43,7 @@ func main() {
 		request.Source.Owner,
 		request.Source.Repository,
 		semverConstraint,
-		request.Source.IncludePreRelease,
+		request.Source.PreRelease,
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, colorstring.Color("[red]error constructing list filters: %s\n"), err)
@@ -67,19 +67,5 @@ func main() {
 		}
 	}
 	// For all other cases, return empty release list.
-	outputResponse(outputVersions)
-}
-
-func inputRequest(request *resource.CheckRequest) {
-	if err := json.NewDecoder(os.Stdin).Decode(request); err != nil {
-		fmt.Fprintf(os.Stderr, colorstring.Color("[red]error reading request form stdin: %s\n"), err)
-		os.Exit(1)
-	}
-}
-
-func outputResponse(response []resource.Version) {
-	if err := json.NewEncoder(os.Stdout).Encode(response); err != nil {
-		fmt.Fprintf(os.Stderr, colorstring.Color("[red]error writing response to stdout: %s\n"), err)
-		os.Exit(1)
-	}
+	cmd.OutputResponse(outputVersions)
 }

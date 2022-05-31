@@ -1,0 +1,3 @@
+# Ignore test and scripts directory which are not used in the final container
+test/
+scripts/

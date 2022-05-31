@@ -113,7 +113,7 @@ will be updated with the provided information.
 | `name_path`   | ✅       | The path to a file containing the release title.                                                                                                                |
 | `tag_path`    | ✅       | The path to a file containing the Git tag to use for the release.                                                                                               |
 | `body_path`   | ✅       | The path to a file containing the release body.                                                                                                                 |
-| `target_path` |          | The path to a file containing a Git ref (SHA, branch, or existing tag) that should be used when cutting the release tag. Only used when creating a new release. |
+| `target_path` | ✅       | The path to a file containing a Git ref (SHA, branch, or existing tag) that should be used when cutting the release tag. Only used when creating a new release. |
 | `id_path`     |          | The path to a file containing the release ID. When provided, automatically assume updating a release.                                                           |
 | `globs`       |          | A list of unix globs for files that will be uploaded alongside the created release.                                                                             |
 

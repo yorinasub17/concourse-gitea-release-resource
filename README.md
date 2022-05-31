@@ -54,16 +54,14 @@ To get a specific version of a release:
 
 ## Source Configuration
 
-| name                | required | description                                                                                                                                                                                                                     |
-|---------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `gitea_url`         | ✅       | The root domain of the Gitea server (e.g., `https://gitea.com`).                                                                                                                                                                |
-| `owner`             | ✅       | The Gitea owner (user or organization) for the repository that contains the releases.                                                                                                                                           |
-| `repository`        | ✅       | The name of the repository that contains the releases.                                                                                                                                                                          |
-| `access_token`      |          | The API access token to use when authenticating to Gitea. Required if the repository is private.                                                                                                                                |
-| `semver_constraint` |          | If set, constrain the returned [semver tags](https://semver.org/) according to the given constraints. The constraints are in the same format as [Terraform](https://www.terraform.io/language/expressions/version-constraints). |
-| `pre_release`       |          | When `true`, `check` will include pre-releases in the list, while `put` will produce
-a pre-release. Note that `put` will only mark a release as pre-release when it is creating a new release. It will not
-update the pre-release flag on existing releases. |
+| name                | required | description                                                                                                                                                                                                                                                  |
+|---------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `gitea_url`         | ✅       | The root domain of the Gitea server (e.g., `https://gitea.com`).                                                                                                                                                                                             |
+| `owner`             | ✅       | The Gitea owner (user or organization) for the repository that contains the releases.                                                                                                                                                                        |
+| `repository`        | ✅       | The name of the repository that contains the releases.                                                                                                                                                                                                       |
+| `access_token`      |          | The API access token to use when authenticating to Gitea. Required if the repository is private.                                                                                                                                                             |
+| `semver_constraint` |          | If set, constrain the returned [semver tags](https://semver.org/) according to the given constraints. The constraints are in the same format as [Terraform](https://www.terraform.io/language/expressions/version-constraints).                              |
+| `pre_release`       |          | When `true`, `check` will include pre-releases in the list, while `put` will produce a pre-release. Note that `put` will only mark a release as pre-release when it is creating a new release. It will not update the pre-release flag on existing releases. |
 
 ## Behavior
 
@@ -92,6 +90,16 @@ the destination directory.
 
 By default all release assets will be downloaded. You can control this behavior using the `globs` input parameter. When
 provided, only assets that have a file name matching the file globs will be downloaded.
+
+The following metadata files will be available:
+
+- `id`: The Gitea ID of the release.
+- `name`: The release title.
+- `tag`: The Git tag for the release.
+- `target`: The target Git ref for the release.
+- `url`: The direct URL to the release page.
+- `body`: The release notes body for the release.
+- `timestamp`: When the release was published.
 
 ### `put`: Publish or update a release
 

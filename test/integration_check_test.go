@@ -26,12 +26,12 @@ var _ = Describe("Integration Check", func() {
 	JustBeforeEach(func() {
 		checkRequest := resource.CheckRequest{
 			Source: resource.Source{
-				GiteaURL:          ServerURL,
-				Owner:             Username,
-				Repository:        inputRepo,
-				AccessToken:       accessToken,
-				IncludePreRelease: includePreRelease,
-				SemverConstraint:  semverConstraint,
+				GiteaURL:         ServerURL,
+				Owner:            Username,
+				Repository:       inputRepo,
+				AccessToken:      accessToken,
+				PreRelease:       includePreRelease,
+				SemverConstraint: semverConstraint,
 			},
 			Version: resource.Version{
 				Tag: priorVersionTag,
@@ -46,7 +46,6 @@ var _ = Describe("Integration Check", func() {
 		cmd.Stdin = bytes.NewReader(jsonBytes)
 		cmd.Stdout = &stdout
 		cmd.Stderr = os.Stderr
-		Ω(err).ShouldNot(HaveOccurred())
 		Ω(cmd.Run()).To(Succeed())
 
 		outputStr := strings.TrimSpace(stdout.String())
@@ -78,6 +77,10 @@ var _ = Describe("Integration Check", func() {
 			})
 
 			Context("and prerelease included", func() {
+				BeforeEach(func() {
+					includePreRelease = true
+				})
+
 				It("returns latest prerelease version", func() {
 					Ω(len(output)).Should(Equal(1))
 					Ω(output[0].Tag).Should(Equal("v0.0.2-alpha.1"))

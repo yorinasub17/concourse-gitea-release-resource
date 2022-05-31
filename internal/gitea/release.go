@@ -1,9 +1,6 @@
 package gitea
 
 import (
-	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -11,6 +8,8 @@ import (
 	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-version"
+
+	"github.com/yorinasub17/concourse-gitea-release-resource/internal/http"
 )
 
 var defaultPageSize = 100
@@ -26,6 +25,24 @@ type ListReleaseOpts struct {
 	SemverConstraint version.Constraints
 	// IncludePreRelease indicates if pre releases should be included in the query.
 	IncludePreRelease bool
+}
+
+// CreateReleaseOpts is a struct representing the metadata for creating a new release.
+type CreateReleaseOpts struct {
+	// Owner is the owner of the repository in the target Gitea instance.
+	Owner string
+	// Repo is the name of the repository in the target Gitea instance.
+	Repo string
+	// Tag represents the tag to create for the release.
+	Tag string
+	// Target is the git ref (SHA, tag, branch) where the release tag should be applied.
+	Target string
+	// Title is the title to apply to the release.
+	Title string
+	// Body is the body to apply to the release.
+	Body string
+	// IsPreRelease indicates whether the new release should be marked as a prerelease.
+	IsPreRelease bool
 }
 
 // NewListReleaseOpts constructs a new ListReleaseOpts filter based on the provided raw values.
@@ -160,34 +177,50 @@ func DownloadReleaseAssets(clt *gitea.Client, release *gitea.Release, destDir st
 		}
 
 		attachmentPath := filepath.Join(destDir, attachment.Name)
-		if err := downloadFile(attachment.DownloadURL, attachmentPath); err != nil {
+		if err := http.DownloadFileOverHTTP(attachment.DownloadURL, attachmentPath); err != nil {
 			allErr = multierror.Append(allErr, err)
 		}
 	}
 	return allErr
 }
 
-func downloadFile(url, destPath string) error {
-	out, err := os.Create(destPath)
+// CreateRelease will create a new release with the given parameters.
+func CreateRelease(clt *gitea.Client, opts CreateReleaseOpts) (*gitea.Release, error) {
+	apiOpts := gitea.CreateReleaseOption{
+		TagName:      opts.Tag,
+		Target:       opts.Target,
+		Title:        opts.Title,
+		Note:         opts.Body,
+		IsPrerelease: opts.IsPreRelease,
+	}
+	rel, _, err := clt.CreateRelease(opts.Owner, opts.Repo, apiOpts)
+	return rel, err
+}
+
+// UpdateRelease will update an existing release with the given parameters.
+func UpdateRelease(clt *gitea.Client, id int64, opts CreateReleaseOpts) (*gitea.Release, error) {
+	apiOpts := gitea.EditReleaseOption{
+		TagName:      opts.Tag,
+		Target:       opts.Target,
+		Title:        opts.Title,
+		Note:         opts.Body,
+		IsPrerelease: &opts.IsPreRelease,
+	}
+	rel, _, err := clt.EditRelease(opts.Owner, opts.Repo, id, apiOpts)
+	return rel, err
+}
+
+// UploadReleaseAssetFromPath will upload the file at the given path to the provided release as an asset, using the file
+// basename as the asset name.
+func UploadReleaseAssetFromPath(clt *gitea.Client, path, owner, repo string, releaseID int64) error {
+	basename := filepath.Base(path)
+
+	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer f.Close()
 
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download file `%s`: HTTP status %d", filepath.Base(destPath), resp.StatusCode)
-	}
-
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	_, _, uploadErr := clt.CreateReleaseAttachment(owner, repo, releaseID, f, basename)
+	return uploadErr
 }

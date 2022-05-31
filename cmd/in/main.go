@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/mitchellh/colorstring"
+	"github.com/yorinasub17/concourse-gitea-release-resource/cmd"
 	"github.com/yorinasub17/concourse-gitea-release-resource/internal/gitea"
 	"github.com/yorinasub17/concourse-gitea-release-resource/internal/resource"
 )
@@ -18,10 +18,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	destDir := os.Args[1]
-
 	var request resource.InRequest
-	inputRequest(&request)
+	cmd.InputRequest(&request)
+
+	destDir := os.Args[1]
 
 	clt, err := gitea.NewGiteaClient(request.Source.GiteaURL, request.Source.AccessToken)
 	if err != nil {
@@ -41,6 +41,18 @@ func main() {
 			)
 			os.Exit(1)
 		}
+	}
+
+	if maybeRel.ID > 0 {
+		writeOutput(destDir, "id", fmt.Sprintf("%d", maybeRel.ID))
+	}
+
+	if maybeRel.Title != "" {
+		writeOutput(destDir, "name", maybeRel.Title)
+	}
+
+	if maybeRel.Target != "" {
+		writeOutput(destDir, "target", maybeRel.Target)
 	}
 
 	if maybeRel.HTMLURL != "" {
@@ -87,25 +99,11 @@ func main() {
 		}
 	}
 
-	resp := resource.InResponse{
+	resp := resource.InOutResponse{
 		Version:  resource.VersionFromRelease(maybeRel),
 		Metadata: resource.MetadataFromRelease(maybeRel),
 	}
-	outputResponse(resp)
-}
-
-func inputRequest(request *resource.InRequest) {
-	if err := json.NewDecoder(os.Stdin).Decode(request); err != nil {
-		fmt.Fprintf(os.Stderr, colorstring.Color("[red]error reading request form stdin: %s\n"), err)
-		os.Exit(1)
-	}
-}
-
-func outputResponse(response resource.InResponse) {
-	if err := json.NewEncoder(os.Stdout).Encode(response); err != nil {
-		fmt.Fprintf(os.Stderr, colorstring.Color("[red]error writing response to stdout: %s\n"), err)
-		os.Exit(1)
-	}
+	cmd.OutputResponse(resp)
 }
 
 func writeOutput(destDir, fname, content string) {

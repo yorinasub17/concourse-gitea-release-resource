@@ -20,6 +20,9 @@ import (
 
 var (
 	metadataAssets = []string{
+		"id",
+		"name",
+		"target",
 		"url",
 		"tag",
 		"body",
@@ -38,7 +41,7 @@ var _ = Describe("Integration In", func() {
 		inputVersionTag string
 		globs           []string
 
-		output    resource.InResponse
+		output    resource.InOutResponse
 		outputDir string
 	)
 
@@ -75,7 +78,6 @@ var _ = Describe("Integration In", func() {
 		cmd.Stdin = bytes.NewReader(jsonBytes)
 		cmd.Stdout = &stdout
 		cmd.Stderr = os.Stderr
-		Ω(err).ShouldNot(HaveOccurred())
 		Ω(cmd.Run()).To(Succeed())
 
 		// chown the files to the current UID and GID so that it can be removed later. We use a docker container so that
@@ -158,6 +160,22 @@ var _ = Describe("Integration In", func() {
 
 			asset2Bytes := []byte(data[2])
 			Ω(ioutil.ReadFile(filepath.Join(outputDir, "assets", "asset2"))).Should(Equal(asset2Bytes))
+		})
+
+		Context("with globs", func() {
+			BeforeEach(func() {
+				globs = []string{"t*"}
+			})
+
+			It("outputs only release assets that match globs", func() {
+				_, err := os.Stat(filepath.Join(outputDir, "assets", "tag"))
+				Ω(err).ShouldNot(HaveOccurred())
+
+				for _, fname := range []string{"asset1", "asset2"} {
+					_, err := os.Stat(filepath.Join(outputDir, "assets", fname))
+					Ω(err).Should(HaveOccurred())
+				}
+			})
 		})
 	})
 })

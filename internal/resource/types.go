@@ -93,9 +93,9 @@ type Source struct {
 	Repository string `json:"repository"`
 
 	// Optional
-	AccessToken       string `json:"access_token"`
-	SemverConstraint  string `json:"semver_constraint"`
-	IncludePreRelease bool   `json:"include_pre_release"`
+	AccessToken      string `json:"access_token"`
+	SemverConstraint string `json:"semver_constraint"`
+	PreRelease       bool   `json:"pre_release"`
 }
 
 type CheckRequest struct {
@@ -113,7 +113,22 @@ type InParams struct {
 	Globs []string `json:"globs"`
 }
 
-type InResponse struct {
+type OutRequest struct {
+	Source Source    `json:"source"`
+	Params OutParams `json:"params"`
+}
+
+type OutParams struct {
+	NamePath   string `json:"name_path"`
+	BodyPath   string `json:"body_path"`
+	TagPath    string `json:"tag_path"`
+	TargetPath string `json:"target_path"`
+	IDPath     string `json:"id_path"`
+
+	Globs []string `json:"globs"`
+}
+
+type InOutResponse struct {
 	Version  Version        `json:"version"`
 	Metadata []MetadataPair `json:"metadata"`
 }

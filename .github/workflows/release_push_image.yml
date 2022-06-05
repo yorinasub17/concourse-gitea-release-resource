@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,6 +23,7 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
       - name: Build and push
+        id: push-step
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -30,7 +34,6 @@ jobs:
       - uses: sigstore/cosign-installer@main
       - name: Sign the images
         run: |
-          cosign sign yorinasub17/gitea-release-resource:latest
-          cosign sign yorinasub17/gitea-release-resource:${{ github.event.release.tag_name }}
+          cosign sign yorinasub17/gitea-release-resource:${{ steps.push-step.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1

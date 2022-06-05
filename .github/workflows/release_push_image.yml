@@ -27,3 +27,10 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: yorinasub17/gitea-release-resource:latest,yorinasub17/gitea-release-resource:${{ github.event.release.tag_name }}
+      - uses: sigstore/cosign-installer@main
+      - name: Sign the images
+        run: |
+          cosign sign yorinasub17/gitea-release-resource:latest
+          cosign sign yorinasub17/gitea-release-resource:${{ github.event.release.tag_name }}
+        env:
+          COSIGN_EXPERIMENTAL: 1

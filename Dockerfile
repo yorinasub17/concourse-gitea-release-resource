@@ -1,32 +1,31 @@
-# Build Phase 1a
+# Build Phase 1
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-FROM golang:1.18-alpine AS builder
+FROM golang:1.18 AS builder
 
 ENV CGO_ENABLED 0
+
+RUN apt-get -qq update \
+    && apt-get -yqq install upx
 
 WORKDIR /tmp/builddir
 COPY . /tmp/builddir
 
-RUN go build -o /assets/check ./cmd/check \
-    && go build -o /assets/in ./cmd/in \
-    && go build -o /assets/out ./cmd/out
-
-
-# Build Phase 1b: Generate latest ca-certificates
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-FROM debian:buster-slim AS certs
-
-RUN \
-  apt update && \
-  apt install -y ca-certificates && \
-  cat /etc/ssl/certs/* > /ca-certificates.crt
+RUN go build -ldflags "-s -w -extldflags '-static'" -o /assets/check ./cmd/check \
+    && strip /assets/check \
+    && upx -q -9 /assets/check \
+    && go build -ldflags "-s -w -extldflags '-static'" -o /assets/in ./cmd/in \
+    && strip /assets/in \
+    && upx -q -9 /assets/in \
+    && go build -ldflags "-s -w -extldflags '-static'" -o /assets/out ./cmd/out \
+    && strip /assets/out \
+    && upx -q -9 /assets/out
 
 
 # Build Phase 2
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FROM scratch
 
-COPY --from=certs /ca-certificates.crt /opt/ssl/certs/
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /assets /opt/resource
 
 ENV HOME /root

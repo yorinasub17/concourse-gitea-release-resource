@@ -34,6 +34,6 @@ jobs:
       - uses: sigstore/cosign-installer@main
       - name: Sign the images
         run: |
-          cosign sign yorinasub17/gitea-release-resource:${{ steps.push-step.outputs.digest }}
+          cosign sign yorinasub17/gitea-release-resource@${{ steps.push-step.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1

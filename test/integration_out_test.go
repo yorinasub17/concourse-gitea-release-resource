@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -47,7 +46,7 @@ var _ = Describe("Integration Out", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 		clt = rawClt
 
-		tmpDir, err := ioutil.TempDir("", "concourse-gitea-release-resource-outtest-*")
+		tmpDir, err := os.MkdirTemp("", "concourse-gitea-release-resource-outtest-*")
 		Ω(err).ShouldNot(HaveOccurred())
 		srcDir = tmpDir
 
@@ -76,13 +75,13 @@ var _ = Describe("Integration Out", func() {
 			},
 		}
 
-		Ω(ioutil.WriteFile(filepath.Join(srcDir, "name"), []byte(nameStr), 0o644)).Should(Succeed())
-		Ω(ioutil.WriteFile(filepath.Join(srcDir, "tag"), []byte(tagStr), 0o644)).Should(Succeed())
-		Ω(ioutil.WriteFile(filepath.Join(srcDir, "target"), []byte("master"), 0o644)).Should(Succeed())
-		Ω(ioutil.WriteFile(filepath.Join(srcDir, "body"), []byte(defaultBodyStr), 0o644)).Should(Succeed())
+		Ω(os.WriteFile(filepath.Join(srcDir, "name"), []byte(nameStr), 0o644)).Should(Succeed())
+		Ω(os.WriteFile(filepath.Join(srcDir, "tag"), []byte(tagStr), 0o644)).Should(Succeed())
+		Ω(os.WriteFile(filepath.Join(srcDir, "target"), []byte("master"), 0o644)).Should(Succeed())
+		Ω(os.WriteFile(filepath.Join(srcDir, "body"), []byte(defaultBodyStr), 0o644)).Should(Succeed())
 		outRequest.Params.BodyPath = "body"
 		if idStr != "" {
-			Ω(ioutil.WriteFile(filepath.Join(srcDir, "id"), []byte(idStr), 0o644)).Should(Succeed())
+			Ω(os.WriteFile(filepath.Join(srcDir, "id"), []byte(idStr), 0o644)).Should(Succeed())
 			outRequest.Params.IDPath = "id"
 		}
 
@@ -136,8 +135,8 @@ var _ = Describe("Integration Out", func() {
 		Context("with assets", func() {
 			BeforeEach(func() {
 				Ω(os.Mkdir(filepath.Join(srcDir, "assets"), 0o755)).Should(Succeed())
-				Ω(ioutil.WriteFile(filepath.Join(srcDir, "assets", "myfile"), []byte(asset1Str), 0o644)).Should(Succeed())
-				Ω(ioutil.WriteFile(filepath.Join(srcDir, "assets", "otherfile"), []byte(asset2Str), 0o644)).Should(Succeed())
+				Ω(os.WriteFile(filepath.Join(srcDir, "assets", "myfile"), []byte(asset1Str), 0o644)).Should(Succeed())
+				Ω(os.WriteFile(filepath.Join(srcDir, "assets", "otherfile"), []byte(asset2Str), 0o644)).Should(Succeed())
 			})
 
 			Context("without glob", func() {
@@ -185,14 +184,14 @@ var _ = Describe("Integration Out", func() {
 					attc := newRelease.Attachments[0]
 					Ω(attc.Name).Should(Equal("myfile"))
 
-					tmpFile, err := ioutil.TempFile("", "")
+					tmpFile, err := os.CreateTemp("", "")
 					Ω(err).ShouldNot(HaveOccurred())
 					tmpFile.Close()
 					defer os.Remove(tmpFile.Name())
 
 					Ω(http.DownloadFileOverHTTP(attc.DownloadURL, tmpFile.Name())).Should(Succeed())
 
-					Ω(ioutil.ReadFile(tmpFile.Name())).Should(Equal([]byte(asset1Str)))
+					Ω(os.ReadFile(tmpFile.Name())).Should(Equal([]byte(asset1Str)))
 				})
 			})
 		})
@@ -228,8 +227,8 @@ var _ = Describe("Integration Out", func() {
 		Context("with new assets", func() {
 			BeforeEach(func() {
 				Ω(os.Mkdir(filepath.Join(srcDir, "assets"), 0o755)).Should(Succeed())
-				Ω(ioutil.WriteFile(filepath.Join(srcDir, "assets", "myfile"), []byte(asset1Str), 0o644)).Should(Succeed())
-				Ω(ioutil.WriteFile(filepath.Join(srcDir, "assets", "otherfile"), []byte(asset2Str), 0o644)).Should(Succeed())
+				Ω(os.WriteFile(filepath.Join(srcDir, "assets", "myfile"), []byte(asset1Str), 0o644)).Should(Succeed())
+				Ω(os.WriteFile(filepath.Join(srcDir, "assets", "otherfile"), []byte(asset2Str), 0o644)).Should(Succeed())
 				globs = []string{"assets/*"}
 			})
 
@@ -244,7 +243,7 @@ var _ = Describe("Integration Out", func() {
 
 		Context("that has existing assets", func() {
 			BeforeEach(func() {
-				tmpF, err := ioutil.TempFile("", "")
+				tmpF, err := os.CreateTemp("", "")
 				Ω(err).ShouldNot(HaveOccurred())
 				_, writeErr := tmpF.Write([]byte("hello world"))
 				Ω(writeErr).ShouldNot(HaveOccurred())
@@ -264,8 +263,8 @@ var _ = Describe("Integration Out", func() {
 			Context("with new assets", func() {
 				BeforeEach(func() {
 					Ω(os.Mkdir(filepath.Join(srcDir, "assets"), 0o755)).Should(Succeed())
-					Ω(ioutil.WriteFile(filepath.Join(srcDir, "assets", "myfile"), []byte(asset1Str), 0o644)).Should(Succeed())
-					Ω(ioutil.WriteFile(filepath.Join(srcDir, "assets", "otherfile"), []byte(asset2Str), 0o644)).Should(Succeed())
+					Ω(os.WriteFile(filepath.Join(srcDir, "assets", "myfile"), []byte(asset1Str), 0o644)).Should(Succeed())
+					Ω(os.WriteFile(filepath.Join(srcDir, "assets", "otherfile"), []byte(asset2Str), 0o644)).Should(Succeed())
 					globs = []string{"assets/*"}
 				})
 

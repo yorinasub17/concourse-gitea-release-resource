@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -180,7 +179,7 @@ func uploadReleaseAssets(
 
 func readFile(srcDir, fname string) string {
 	path := filepath.Join(srcDir, fname)
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Fprintf(
 			os.Stderr,

@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -87,7 +86,7 @@ func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, re
 	parsed.User = url.UserPassword(test.Username, test.Password)
 	cloneURLAuthed := parsed.String()
 
-	tmpDir, err := ioutil.TempDir("", "gitea-test*")
+	tmpDir, err := os.MkdirTemp("", "gitea-test*")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: could not create temp dir for cloning: %s\n", err)
 		os.Exit(1)
@@ -106,7 +105,7 @@ func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, re
 
 	// Add an initial commit
 	readmePath := filepath.Join(tmpDir, "README.md")
-	if err := ioutil.WriteFile(readmePath, []byte("# Test repo"), 0o644); err != nil {
+	if err := os.WriteFile(readmePath, []byte("# Test repo"), 0o644); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: could not write readme to file %s: %s\n", readmePath, err)
 		os.Exit(1)
 	}
@@ -132,7 +131,7 @@ func mustSetupRepoWithTestReleases(clt *gitea.Client, repo *gitea.Repository, re
 			fmt.Fprintf(os.Stderr, "ERROR: could not create random string: %s\n", err)
 			os.Exit(1)
 		}
-		if err := ioutil.WriteFile(randomFPath, []byte(uniqueStr), 0o644); err != nil {
+		if err := os.WriteFile(randomFPath, []byte(uniqueStr), 0o644); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: could not write random string to file %s: %s\n", randomFPath, err)
 			os.Exit(1)
 		}

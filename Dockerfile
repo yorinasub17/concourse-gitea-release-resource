@@ -1,6 +1,6 @@
 # Build Phase 1
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-FROM golang:1.18 AS builder
+FROM golang:1.21.5-bullseye AS builder
 
 ENV CGO_ENABLED 0
 

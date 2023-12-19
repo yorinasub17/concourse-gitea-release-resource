@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -46,7 +45,7 @@ var _ = Describe("Integration In", func() {
 	)
 
 	JustBeforeEach(func() {
-		tmpDir, err := ioutil.TempDir("", "concourse-gitea-release-resource-incmdtest-*")
+		tmpDir, err := os.MkdirTemp("", "concourse-gitea-release-resource-incmdtest-*")
 		Ω(err).ShouldNot(HaveOccurred())
 		outputDir = tmpDir
 
@@ -122,8 +121,8 @@ var _ = Describe("Integration In", func() {
 				Ω(err).Should(HaveOccurred())
 			}
 
-			Ω(ioutil.ReadFile(filepath.Join(outputDir, "tag"))).To(Equal([]byte("v0.0.0")))
-			Ω(ioutil.ReadFile(filepath.Join(outputDir, "body"))).To(Equal([]byte("release v0.0.0")))
+			Ω(os.ReadFile(filepath.Join(outputDir, "tag"))).To(Equal([]byte("v0.0.0")))
+			Ω(os.ReadFile(filepath.Join(outputDir, "body"))).To(Equal([]byte("release v0.0.0")))
 		})
 	})
 
@@ -139,8 +138,8 @@ var _ = Describe("Integration In", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 			}
 
-			Ω(ioutil.ReadFile(filepath.Join(outputDir, "tag"))).To(Equal([]byte("v0.0.0")))
-			Ω(ioutil.ReadFile(filepath.Join(outputDir, "body"))).To(Equal([]byte("release v0.0.0")))
+			Ω(os.ReadFile(filepath.Join(outputDir, "tag"))).To(Equal([]byte("v0.0.0")))
+			Ω(os.ReadFile(filepath.Join(outputDir, "body"))).To(Equal([]byte("release v0.0.0")))
 		})
 
 		It("outputs release assets", func() {
@@ -149,17 +148,17 @@ var _ = Describe("Integration In", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 			}
 
-			contents, err := ioutil.ReadFile(filepath.Join(outputDir, "assets", "tag"))
+			contents, err := os.ReadFile(filepath.Join(outputDir, "assets", "tag"))
 			Ω(err).ShouldNot(HaveOccurred())
 			data := strings.Split(strings.TrimSpace(string(contents)), "\n")
 			Ω(len(data)).Should(Equal(3))
 			Ω(data[0]).Should(Equal("v0.0.0"))
 
 			asset1Bytes := []byte(data[1])
-			Ω(ioutil.ReadFile(filepath.Join(outputDir, "assets", "asset1"))).Should(Equal(asset1Bytes))
+			Ω(os.ReadFile(filepath.Join(outputDir, "assets", "asset1"))).Should(Equal(asset1Bytes))
 
 			asset2Bytes := []byte(data[2])
-			Ω(ioutil.ReadFile(filepath.Join(outputDir, "assets", "asset2"))).Should(Equal(asset2Bytes))
+			Ω(os.ReadFile(filepath.Join(outputDir, "assets", "asset2"))).Should(Equal(asset2Bytes))
 		})
 
 		Context("with globs", func() {

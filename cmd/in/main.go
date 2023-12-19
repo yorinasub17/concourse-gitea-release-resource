@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -108,7 +107,7 @@ func main() {
 
 func writeOutput(destDir, fname, content string) {
 	path := filepath.Join(destDir, fname)
-	if err := ioutil.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		fmt.Fprintf(
 			os.Stderr,
 			colorstring.Color("[red]error writing %s to destination %s: %s\n"),
